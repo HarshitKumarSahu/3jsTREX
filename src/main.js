@@ -5,6 +5,9 @@ import GUI from 'lil-gui'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 
+import vertex from "./shaders/vertex.glsl";
+import fragment from "./shaders/fragment.glsl";
+
 /**
  * Base
  */
@@ -18,6 +21,13 @@ const canvas = document.querySelector('canvas.webgl')
 const scene = new THREE.Scene()
 
 /**
+ * Texture
+ */
+const textureLoader = new THREE.TextureLoader()
+const normalTexture = textureLoader.load('/img/texture.webp')
+normalTexture.flipY = false
+
+/**
  * Models
  */
 const dracoLoader = new DRACOLoader()
@@ -28,6 +38,21 @@ gltfLoader.setDRACOLoader(dracoLoader)
 
 let mixer = null;
 
+const trexMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+        rimColor:     { value: new THREE.Color(1.0, 0.0, 0.0) }, // light cyan/blue rim
+        rimPower:     { value: 5.0 },
+        rimIntensity: { value: 5.4 },
+        normalMap:    { value: normalTexture }
+    },
+    vertexShader: vertex,
+    fragmentShader: fragment,
+    side: THREE.DoubleSide,     // ← useful for some models
+    transparent: true,   
+    // skinning: true,       // ← if you want to mix with opacity later
+    // wireframe: true          // ← for debugging
+});
+
 gltfLoader.load(
     "/models/trex-v5.glb",
     // "/models/trex.glb",
@@ -35,11 +60,20 @@ gltfLoader.load(
         console.log("success");
         
         let model = gltf.scene
+        console.log(model);
+        
 
-        // mixer = new THREE.AnimationMixer(gltf.scene)
-        // let action = mixer.clipAction(gltf.animations[0])
+        // Apply same material to ALL meshes
+        model.traverse((child) => {
+            if (child.isMesh) {
+                child.material = trexMaterial;
+            }
+        });
 
-        // action.play()
+        mixer = new THREE.AnimationMixer(gltf.scene)
+        let action = mixer.clipAction(gltf.animations[4])
+
+        action.play()
         
         // model.scale.set(0.025, 0.025, 0.025)
         scene.add(model)

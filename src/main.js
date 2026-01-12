@@ -5,8 +5,14 @@ import GUI from 'lil-gui'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 
+import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js'
+import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js'
+
 import vertex from "./shaders/vertex.glsl";
 import fragment from "./shaders/fragment.glsl";
+
+import floorVertex from "./shaders/floor/vertex.glsl";
+import floorFragment from "./shaders/floor/fragment.glsl";
 
 /**
  * Base
@@ -24,7 +30,7 @@ const scene = new THREE.Scene()
  * Texture
  */
 const textureLoader = new THREE.TextureLoader()
-const normalTexture = textureLoader.load('/img/texture.webp')
+const normalTexture = textureLoader.load('/img/texture.jpg')
 normalTexture.flipY = false
 
 /**
@@ -71,11 +77,12 @@ gltfLoader.load(
         });
 
         mixer = new THREE.AnimationMixer(gltf.scene)
-        let action = mixer.clipAction(gltf.animations[4])
+        let action = mixer.clipAction(gltf.animations[0])
 
         action.play()
         
         // model.scale.set(0.025, 0.025, 0.025)
+        model.rotation.y = Math.PI * 0.5
         scene.add(model)
     },
     (progress) => {
@@ -90,17 +97,82 @@ gltfLoader.load(
 /**
  * Floor
  */
+
+const floorMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+      time:          { value: 0 },
+      noiseScale:    { value: 2.75  },
+      noiseStrength: { value: 0.075 },
+      baseColor:     { value: new THREE.Color('#000') },
+      rimColor:      { value: new THREE.Color('#ff0000') },
+      rimPower:     { value: 5.0 },
+      rimIntensity: { value: 5.4 },
+    },
+    vertexShader: floorVertex,
+    fragmentShader: floorFragment,
+    side: THREE.DoubleSide,      // usually good for floors when debugging
+    // transparent: true,        // only if you need alpha < 1
+    // wireframe: true
+  });
+
 const floor = new THREE.Mesh(
-    new THREE.PlaneGeometry(10, 10),
-    new THREE.MeshStandardMaterial({
-        color: '#444444',
-        metalness: 0,
-        roughness: 0.5
-    })
+    new THREE.BoxGeometry(10, 3, 1, 64, 64, 64),
+    // new THREE.MeshStandardMaterial({
+    //     color: '#ff0000',
+    //     metalness: 0,
+    //     roughness: 0.5,
+    //     wireframe: true
+    // })
+    floorMaterial
 )
 floor.receiveShadow = true
 floor.rotation.x = - Math.PI * 0.5
+floor.position.y = - 1 * 0.5
 scene.add(floor)
+
+/**
+ * Text
+ */
+// const fontLoader = new FontLoader()
+// fontLoader.load(
+//     "/fonts/Aileron_SemiBold_Regular.json",
+//     (font) => {
+//         console.log("font load");
+//         const textGeo = new TextGeometry(
+//             "TREX",
+//             {
+//                 font,
+//                 size: 4,
+//                 depth: 0.5,
+//                 curveSegments: 4,
+//                 bevelEnabled: true,
+//                 bevelThickness: 0.03,
+//                 bevelSize: 0.02,
+//                 bevelOffset: 0,
+//                 bevelSegments: 4
+//             }
+//         )
+//         // textGeo.computeBoundingBox()
+//         // textGeo.translate(
+//         //     - (textGeo.boundingBox.max.x - 0.02) * 0.5,
+//         //     - (textGeo.boundingBox.max.y - 0.02) * 0.5,
+//         //     - (textGeo.boundingBox.max.z - 0.03) * 0.5
+//         // )
+
+//         textGeo.center()
+        
+//         const textMat = new THREE.MeshBasicMaterial({
+//             color: "#ff0000"
+//         })
+//         const text = new THREE.Mesh(textGeo, textMat);
+
+//         text.position.y = 3.75 * 0.5
+//         text.position.z = -1.25 * 0.75
+
+//         scene.add(text)
+//     }
+// )
+
 
 /**
  * Lights
@@ -147,7 +219,7 @@ window.addEventListener('resize', () =>
  */
 // Base camera
 const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 100)
-camera.position.set(2, 2, 2)
+camera.position.set(0,0,3)
 scene.add(camera)
 
 // Controls
@@ -159,7 +231,9 @@ controls.enableDamping = true
  * Renderer
  */
 const renderer = new THREE.WebGLRenderer({
-    canvas: canvas
+    canvas: canvas,
+    alpha: true,
+    antialias: true
 })
 renderer.shadowMap.enabled = true
 renderer.shadowMap.type = THREE.PCFSoftShadowMap
@@ -177,6 +251,8 @@ const tick = () =>
     const elapsedTime = clock.getElapsedTime()
     const deltaTime = elapsedTime - previousTime
     previousTime = elapsedTime
+
+    floorMaterial.uniforms.time.value = performance.now() * 0.001
 
     // Update Mixer
     if(mixer) {

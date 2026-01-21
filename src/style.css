@@ -12,6 +12,10 @@
     src: url("url from the folder or link");
 }
 
+:root {
+    --one-block: calc(100vw / 36);
+}
+
 /* Reset */
 * {
     padding: 0;
@@ -22,7 +26,8 @@ html, body {
     width: 100%;
     height: 100%;
     background-color: #000;
-    font-family: 'Roboto', system-ui, sans-serif;
+    /* font-family: 'Roboto', system-ui, sans-serif; */
+    font-family: "Anton", sans-serif;
     /* smoothing the font */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -47,18 +52,67 @@ img {
     top: 0;
     left: 0;
     outline: none;
-    z-index: 2;
+    z-index: 3;
 }
-
 .marque {
     width: 100%;
     height: 100%;
-    z-index: 1;
-    color: #ff0000;
+    z-index: 2;
+    color: #D71E21;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 20vw;
+    font-size: calc(var(--one-block) * 7);
+    /* letter-spacing: calc(var(--one-block) * -1.125); */
+    position: fixed;
+    top: 0;
+    left: 0;
+    outline: none;
+}
+
+main {
+    width: 100%;
+    height: 100%;
+    z-index: 9;
+}
+nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    outline: none;
+    width: 100%;
+    font-family: "Roboto Condensed", sans-serif;
+    color: #EFE3D2;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    padding: calc(var(--one-block) * 0.25);
+}
+nav p:first-child {
+    color: #D71E21;
+}
+
+.section {
+    width: 100%;
+    height: 100vh;
+    color: #EFE3D2;
+    z-index: 9;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-direction: column;
+    position: relative;
+    top: 0;
+    left: 0;
+    outline: none;
+    padding: calc(var(--one-block) * 1);
+    /* pointer-events: none; */
+}
+.section h1 {
+    font-family: "Anton", sans-serif;
+}
+.section p {
+    font-family: "Roboto Condensed", sans-serif;
 }
 
 

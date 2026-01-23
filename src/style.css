@@ -88,11 +88,14 @@ nav {
     justify-content: space-around;
     padding: calc(var(--one-block) * 0.25);
 }
-nav p:first-child {
-    color: #D71E21;
+#chapter-nav p {
+    transition: all 0.75s ease;
+}
+#chapter-nav p.active {
+    color: #ff0000;
 }
 
-.section {
+#content {
     width: 100%;
     height: 100vh;
     color: #EFE3D2;
@@ -108,11 +111,39 @@ nav p:first-child {
     padding: calc(var(--one-block) * 1);
     /* pointer-events: none; */
 }
-.section h1 {
+#content h1 {
     font-family: "Anton", sans-serif;
 }
-.section p {
+#content p {
     font-family: "Roboto Condensed", sans-serif;
+}
+
+#transition-veil {
+    /* position: fixed; 
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%;
+    background: #282828; 
+    z-index: 200; 
+    transform: scaleY(0); 
+    transform-origin: top; */
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 500; pointer-events: none;
+
+}
+
+#start-btn {
+    position: fixed; 
+    top: 50%; 
+    left: 50%; 
+    transform: translate(-50%, -50%);
+    z-index: 300; 
+    background: #ff0000; 
+    color: white; 
+    border: none;
+    padding: 15px 40px; 
+    font-weight: bold; 
+    cursor: pointer;
 }
 
 

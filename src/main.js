@@ -14,12 +14,11 @@ import fragment from "./shaders/fragment.glsl";
 import floorVertex from "./shaders/floor/vertex.glsl";
 import floorFragment from "./shaders/floor/fragment.glsl";
 
+import gsap from 'gsap';
+
 /**
  * Base
  */
-// Debug
-const gui = new GUI()
-
 // Canvas
 const canvas = document.querySelector('canvas.webgl')
 
@@ -43,6 +42,9 @@ const gltfLoader = new GLTFLoader()
 gltfLoader.setDRACOLoader(dracoLoader)
 
 let mixer = null;
+let actions = {}; // Store all actions here
+let activeAction = null;
+let trexModel = null;
 
 const trexMaterial = new THREE.ShaderMaterial({
     uniforms: {
@@ -61,38 +63,38 @@ const trexMaterial = new THREE.ShaderMaterial({
 
 gltfLoader.load(
     "/models/trex-v5.glb",
-    // "/models/trex.glb",
     (gltf) => {
-        console.log("success");
-        
-        let model = gltf.scene
-        console.log(model);
-        
+        console.log("GLTF Loaded", gltf);
+        trexModel = gltf.scene;
 
-        // Apply same material to ALL meshes
-        model.traverse((child) => {
-            if (child.isMesh) {
-                child.material = trexMaterial;
-            }
+        // Apply Material
+        trexModel.traverse((child) => {
+            if (child.isMesh) child.material = trexMaterial;
         });
 
-        mixer = new THREE.AnimationMixer(gltf.scene)
-        let action = mixer.clipAction(gltf.animations[4])
-
-        action.play()
+        // Setup Animations
+        mixer = new THREE.AnimationMixer(trexModel);
         
-        // model.scale.set(0.025, 0.025, 0.025)
-        model.rotation.y = Math.PI * 0.5
-        scene.add(model)
-    },
-    (progress) => {
-        console.log("progress");
-    },
-    (error) => {
-        console.log("error");
-        console.log(error);
+        // Load all animations
+        gltf.animations.forEach((clip, index) => {
+            actions[index] = mixer.clipAction(clip);
+        });
+
+        // Initial setup
+        trexModel.rotation.y = Math.PI * 0.5;
+        scene.add(trexModel);
+        
+        console.log("Animations List:", gltf.animations); 
     }
-)
+);
+
+const animIndices = {
+    RUN:  0, 
+    BITE: 1, 
+    ROAR: 2, 
+    TAIL: 3, 
+    IDLE: 4,  
+};
 
 /**
  * Floor
@@ -190,6 +192,196 @@ directionalLight.shadow.camera.right = 7
 directionalLight.shadow.camera.bottom = - 7
 directionalLight.position.set(5, 5, 5)
 scene.add(directionalLight)
+
+
+// ==========================================
+// STORY & LOGIC ENGINE
+// ==========================================
+
+let currentChapter = 0;
+let isRunningInfinite = false;
+
+// Helper: Switch Animation smoothly
+const fadeToAction = (index, duration = 0.5) => {
+    const newAction = actions[index];
+    if(!newAction) return console.warn(`Animation ${index} not found`);
+    
+    if (activeAction) {
+        activeAction.fadeOut(duration);
+    }
+    newAction.reset().fadeIn(duration).play();
+    activeAction = newAction;
+}
+
+// --- NEW TRANSITION EFFECT ---
+const cinematicTransition = (onHalfway) => {
+    const veil = document.getElementById('transition-veil');
+    const tl = gsap.timeline();
+
+    // tl.to(veil, { 
+    //     duration: 0.7, 
+    //     scaleY: 1, 
+    //     transformOrigin: "bottom", 
+    //     ease: "expo.inOut" 
+    // })
+    // .call(() => { if(onHalfway) onHalfway(); })
+    // .to(veil, { 
+    //     duration: 0.7, 
+    //     scaleY: 0, 
+    //     transformOrigin: "top", 
+    //     ease: "expo.inOut",
+    //     delay: 0.25
+    // });
+
+
+    // greatest for all
+    tl.to(trexMaterial.uniforms.rimIntensity, { value: 5000, duration: 0.5, ease: "power2.in" })
+    .to(veil, { opacity: 0.75, duration: 0.3, backgroundColor: "#EFE3D2" }, "-=0.2")
+    .call(onHalfway)
+    .to(trexMaterial.uniforms.rimIntensity, { value: 5.4, duration: 1 })
+    .to(veil, { opacity: 0, duration: 1 }, "-=1");
+
+
+    // if any thing not worked the this
+    // tl
+    // .to("canvas", { filter: "blur(20px) brightness(0)", duration: 0.4 }, "-=0.4")
+    // .call(() => {
+    //     onHalfway();
+    //     // Reset camera for new chapter
+    //     // camera.position.z = 5; 
+    // })
+    // .to("canvas", { filter: "blur(0px) brightness(1)", duration: 0.8, ease: "power2.out" });
+}
+
+// --- CHAPTER UPDATE UTILITY ---
+const updateChapterUI = (index, title, desc) => {
+    // Update Chapter Text
+    const titleEl = document.getElementById('chapter-title');
+    const descEl = document.getElementById('chapter-desc');
+    if(titleEl) titleEl.innerText = title;
+    if(descEl) descEl.innerText = desc;
+    
+    // Update Nav Highlighting
+    document.querySelectorAll('#chapter-nav p').forEach(p => p.classList.remove('active'));
+    const currentNav = document.getElementById(`nav-${index}`);
+    if(currentNav) currentNav.classList.add('active');
+};
+
+// chapter flow 1->idle , 2->roar , 3->bite, 4->tail, 5->run(marque)
+
+// --- CHAPTER 1: IDLE (Stand) ---
+const playChapter1 = () => {
+    currentChapter = 1;
+    updateChapterUI(1, "Project: CARNIVORE", "System online. Subject is currently in a dormant state.");
+    fadeToAction(animIndices.IDLE);
+
+    gsap.timeline()
+        // Camera orbit with subtle bounce and a little focus pull using FOV and rim glow pulse
+        // .to(camera.position, { x: 0, y: 0, z: 3, duration: 0.8, ease: "power2.out" })
+        // .to(camera.position, { x: -2, y: 0.75, z: 2.8, duration: 0.8, ease: "power2.inOut" })
+        // .to(camera.position, { x: 2, y: 0.75, z: 2.8, duration: 1, ease: "power2.inOut" })
+        .to(camera.position, { x: 0, y: 1.25, z: 2.2, duration: 0.7, ease: "power2.inOut" })
+        // .to(camera, { fov: 65, duration: 0.5, onUpdate: () => camera.updateProjectionMatrix() }, "-=0.7") // Focus pull
+        // .to(trexMaterial.uniforms.rimIntensity, { value: 22, duration: 0.7, yoyo: true, repeat: 1 }, "<") // Subtle rim flicker as it "awakens"
+        // .to(camera.position, { x: 0, y: 0.5, z: 3, duration: 0.6, ease: "bounce.out" })
+        // .to(camera, { fov: 75, duration: 0.7, onUpdate: () => camera.updateProjectionMatrix() }) // Reset FOV
+    
+    // Move to Chapter 2 after 4 seconds
+    setTimeout(playChapter2, 11866);
+};
+
+// --- CHAPTER 2: ROAR (The Warning) ---
+const playChapter2 = () => {
+    cinematicTransition(() => {
+        currentChapter = 2;
+        // isRunningInfinite = false;
+        updateChapterUI(2, "The Primal Scream", "Acoustic levels peaking. Structural integrity at risk.");
+        fadeToAction(animIndices.ROAR);
+
+        // Zoom in + Camera Shake
+        // gsap.to(camera.position, { x: 0, y: 2, z: 3, duration: 1 });
+        // gsap.to(camera.position, {
+        //     x: "+=0.3", duration: 0.05, repeat: 40, yoyo: true, delay: 0.5,
+        //     onComplete: () => gsap.to(camera.position, {x: 0, duration: 0.5})
+        // });
+    });
+
+    setTimeout(playChapter3, 9000);
+};
+
+// --- CHAPTER 5: BITE (The End) ---
+const playChapter3 = () => {
+    cinematicTransition(() => {
+        currentChapter = 3;
+        updateChapterUI(3, "Final Contact", "Containment breached. Connection lost.");
+        fadeToAction(animIndices.BITE);
+
+        // Reset rotation and lunge at camera
+        // gsap.set(camera.rotation, {z: 0});
+        // gsap.fromTo(camera.position, 
+        //     { x: 0, y: 0.5, z: 6 }, 
+        //     { z: 1.5, duration: 0.8, ease: "power4.in", delay: 1 }
+        // );
+
+        // // Final Blackout
+        // setTimeout(() => {
+        //     gsap.to("canvas", { opacity: 0, duration: 0.5 });
+        //     document.getElementById('chapter-desc').innerText = "FATAL ERROR: SUBJECT ESCAPED";
+        // }, 2500);
+    });
+
+    setTimeout(playChapter4, 9266);
+};
+
+// --- CHAPTER 4: TAIL ATTACK (The Impact) ---
+const playChapter4 = () => {
+    cinematicTransition(() => {
+        currentChapter = 4;
+        updateChapterUI(4, "Tactical Strike", "Subject utilizing rear appendages. Brace for impact.");
+        fadeToAction(animIndices.TAIL);
+    });
+
+    // Sync the camera "throw" with the tail swing
+    // setTimeout(() => {
+    //     // Red Flash Overlay
+    //     gsap.to("#bite-flash", { opacity: 0.8, duration: 0.1, yoyo: true, repeat: 1 });
+        
+    //     // Throw the camera away
+    //     gsap.to(camera.position, { x: 10, y: 5, z: 12, duration: 1.5, ease: "expo.out" });
+    //     gsap.to(camera.rotation, { z: 0.5, duration: 1.5 });
+    // }, 1000);
+
+    setTimeout(playChapter5, 6000);
+};
+
+// --- CHAPTER 2: RUN (The Pursuit) ---
+const playChapter5 = () => {
+    cinematicTransition(() => {
+        currentChapter = 5;
+        // isRunningInfinite = true; // Speed up floor shader
+        updateChapterUI(5, "The Pursuit", "Target acquired. The subject has reached terminal velocity.");
+        fadeToAction(animIndices.RUN);
+
+        // Dynamic Camera Move
+        // gsap.to(camera.position, { x: -4, y: 1, z: 6, duration: 2.5, ease: "power2.inOut" });
+    });
+    
+};
+
+
+
+
+// --- INITIAL START BUTTON ---
+document.getElementById('start-btn').addEventListener('click', (e) => {
+    e.target.style.display = 'none';
+    
+    // Unlock Audio Context if you have audio
+    // const audio = new Audio('/your-audio.mp3');
+    // audio.play();
+
+    playChapter1();
+});
+
 
 /**
  * Sizes

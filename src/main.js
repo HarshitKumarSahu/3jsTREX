@@ -269,18 +269,39 @@ const updateChapterUI = (index, title, desc) => {
 
 // chapter flow 1->idle , 2->roar , 3->bite, 4->tail, 5->run(marque)
 
+// --- CINEMATIC PATH ---
+const camPath = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(0, 0, 3), 
+    new THREE.Vector3(0, 0.25, 2.125),  
+    new THREE.Vector3(2.75, 1.5, 1.2),
+    // new THREE.Vector3(1.5, 1.2, -2.5),
+    // new THREE.Vector3(-2, 1.5, -2),
+    // new THREE.Vector3(-1, 0.15, 2),
+    // new THREE.Vector3(0, 0, 3),
+]);
+
 // --- CHAPTER 1: IDLE (Stand) ---
 const playChapter1 = () => {
     currentChapter = 1;
     updateChapterUI(1, "Project: CARNIVORE", "System online. Subject is currently in a dormant state.");
     fadeToAction(animIndices.IDLE);
 
-    gsap.timeline()
+    const pathObj = { t: 0 };
+    gsap.to(pathObj, {
+        t: 1, duration: 11.866, ease: "sine.inOut",
+        onUpdate: () => {
+            const pos = camPath.getPoint(pathObj.t);
+            camera.position.copy(pos);
+            controls.update();
+        }
+    });
+
+    // gsap.timeline()
         // Camera orbit with subtle bounce and a little focus pull using FOV and rim glow pulse
         // .to(camera.position, { x: 0, y: 0, z: 3, duration: 0.8, ease: "power2.out" })
         // .to(camera.position, { x: -2, y: 0.75, z: 2.8, duration: 0.8, ease: "power2.inOut" })
         // .to(camera.position, { x: 2, y: 0.75, z: 2.8, duration: 1, ease: "power2.inOut" })
-        .to(camera.position, { x: 0, y: 1.25, z: 2.2, duration: 0.7, ease: "power2.inOut" })
+        // .to(camera.position, { x: 0, y: 1.25, z: 2.2, duration: 0.7, ease: "power2.inOut" })
         // .to(camera, { fov: 65, duration: 0.5, onUpdate: () => camera.updateProjectionMatrix() }, "-=0.7") // Focus pull
         // .to(trexMaterial.uniforms.rimIntensity, { value: 22, duration: 0.7, yoyo: true, repeat: 1 }, "<") // Subtle rim flicker as it "awakens"
         // .to(camera.position, { x: 0, y: 0.5, z: 3, duration: 0.6, ease: "bounce.out" })
@@ -290,6 +311,14 @@ const playChapter1 = () => {
     setTimeout(playChapter2, 11866);
 };
 
+const camPathChap2 = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(2.75, 1.5, 1.2),
+    new THREE.Vector3(2.5, 0.125, -0.125),
+    // new THREE.Vector3(-2, 1.5, -2),
+    // new THREE.Vector3(-1, 0.15, 2),
+    // new THREE.Vector3(0, 0, 3),
+]);
+
 // --- CHAPTER 2: ROAR (The Warning) ---
 const playChapter2 = () => {
     cinematicTransition(() => {
@@ -297,6 +326,16 @@ const playChapter2 = () => {
         // isRunningInfinite = false;
         updateChapterUI(2, "The Primal Scream", "Acoustic levels peaking. Structural integrity at risk.");
         fadeToAction(animIndices.ROAR);
+
+        const pathObj = { t: 0 };
+        gsap.to(pathObj, {
+            t: 1, duration: 2, ease: "sine.inOut",
+            onUpdate: () => {
+                const pos = camPathChap2.getPoint(pathObj.t);
+                camera.position.copy(pos);
+                controls.update();
+            }
+        });
 
         // Zoom in + Camera Shake
         // gsap.to(camera.position, { x: 0, y: 2, z: 3, duration: 1 });
@@ -309,12 +348,29 @@ const playChapter2 = () => {
     setTimeout(playChapter3, 9000);
 };
 
+const camPathChap3 = new THREE.CatmullRomCurve3([
+    new THREE.Vector3(2.5, 0.125, -0.125),
+    new THREE.Vector3(3, 0.125, -1.25),
+    // new THREE.Vector3(-1, 0.15, 2),
+    // new THREE.Vector3(0, 0, 3),
+]);
+
 // --- CHAPTER 5: BITE (The End) ---
 const playChapter3 = () => {
     cinematicTransition(() => {
         currentChapter = 3;
         updateChapterUI(3, "Final Contact", "Containment breached. Connection lost.");
         fadeToAction(animIndices.BITE);
+
+        const pathObj = { t: 0 };
+        gsap.to(pathObj, {
+            t: 1, duration: 2, ease: "sine.inOut",
+            onUpdate: () => {
+                const pos = camPathChap3.getPoint(pathObj.t);
+                camera.position.copy(pos);
+                controls.update();
+            }
+        });
 
         // Reset rotation and lunge at camera
         // gsap.set(camera.rotation, {z: 0});
@@ -333,24 +389,43 @@ const playChapter3 = () => {
     setTimeout(playChapter4, 9266);
 };
 
+// const camPathChap4 = new THREE.CatmullRomCurve3([
+//     new THREE.Vector3(3, 0.125, -1.25),
+//     new THREE.Vector3(2.75, 1.125, 0.25),
+//     new THREE.Vector3(6, 1.125, 0.25),
+//     // new THREE.Vector3(0, 0, 3),
+// ]);
+
 // --- CHAPTER 4: TAIL ATTACK (The Impact) ---
 const playChapter4 = () => {
     cinematicTransition(() => {
         currentChapter = 4;
         updateChapterUI(4, "Tactical Strike", "Subject utilizing rear appendages. Brace for impact.");
         fadeToAction(animIndices.TAIL);
+
+        // gsap.to(camera.position, {
+        //     x: "+=0.3", duration: 0.05, repeat: 40, yoyo: true, delay: 0.5,
+        //     onComplete: () => gsap.to(camera.position, {x: 0, duration: 0.5})
+        // });
+
+        gsap.to(camera.position, {
+            x: "2.75", y:"1.125", z:"0.25", duration: 1.1275,
+            onComplete: () => {
+                gsap.to(camera.position, {x: "7", y:"1.125", z:"0.25", duration: 1, ease:"elastic.out"})
+                // gsap.to(scene.rotation, {x: Math.PI * 2, duration: 1, ease:"elastic.out"})
+            } 
+        });
+
+        // const pathObj = { t: 0 };
+        // gsap.to(pathObj, {
+        //     t: 1, duration: 3, ease: "sine.Out",
+        //     onUpdate: () => {
+        //         const pos = camPathChap4.getPoint(pathObj.t);
+        //         camera.position.copy(pos);
+        //         controls.update();
+        //     }
+        // });
     });
-
-    // Sync the camera "throw" with the tail swing
-    // setTimeout(() => {
-    //     // Red Flash Overlay
-    //     gsap.to("#bite-flash", { opacity: 0.8, duration: 0.1, yoyo: true, repeat: 1 });
-        
-    //     // Throw the camera away
-    //     gsap.to(camera.position, { x: 10, y: 5, z: 12, duration: 1.5, ease: "expo.out" });
-    //     gsap.to(camera.rotation, { z: 0.5, duration: 1.5 });
-    // }, 1000);
-
     setTimeout(playChapter5, 6000);
 };
 
